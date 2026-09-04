@@ -11,9 +11,9 @@ License: MIT
 import argparse
 import csv
 import json
-import math
+import os
 import sys
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 
 def calculate_metrics(**kwargs) -> Dict[str, Any]:
@@ -66,9 +66,14 @@ def process_single(args) -> None:
 
 
 def process_batch(input_csv: str, output_csv: str) -> None:
+    if not os.path.isfile(input_csv):
+        raise FileNotFoundError(f"Input file not found: {input_csv}")
+
     with open(input_csv, mode="r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
-        fieldnames = list(reader.fieldnames or [])
+        if not reader.fieldnames:
+            raise ValueError("CSV file is empty or has no headers")
+        fieldnames = list(reader.fieldnames)
         rows = list(reader)
 
     out_fields = fieldnames + ["score", "classification", "clinical_recommendation"]
@@ -108,10 +113,16 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    if args.command == "single":
-        args.func(args)
-    elif args.command == "batch":
-        process_batch(args.input, args.output)
+    try:
+        if args.command == "single":
+            args.func(args)
+        elif args.command == "batch":
+            process_batch(args.input, args.output)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":

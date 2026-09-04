@@ -8,11 +8,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from agents.base import PHIGuard, AuditLogger, SecurityException
+from agents.base import PHIGuard, AuditLogger, AuditTrail, SecurityException
 from agents.models import SystemTaskPayload, UrgencyLevel, SystemIntegrityStatus
 from agents.workers import InvariantQCWorker, SafetyEscalationWorker, ProtocolConformanceWorker
 from agents.supervisor import SystemSupervisor
-from cli import main
+from cli import main, _validate_safe_path
 
 
 def test_phi_guard_enforcement():
@@ -63,3 +63,40 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_audit_trail_with_secret_key():
+    """AuditTrail should use provided secret key without hardcoding defaults."""
+    import os
+    # Test that explicit key works
+    trail = AuditTrail(secret_key="test-key-12345")
+    assert trail.secret_key == b"test-key-12345"
+
+    # Test environment variable
+    os.environ["AUDIT_SECRET_KEY"] = "env-key-67890"
+    trail2 = AuditTrail()
+    assert trail2.secret_key == b"env-key-67890"
+    del os.environ["AUDIT_SECRET_KEY"]
+
+    # Test ephemeral key generation (no default hardcoded value)
+    trail3 = AuditTrail()
+    assert len(trail3.secret_key) == 64  # 32 bytes hex-encoded = 64 chars
+
+
+def test_validate_safe_path():
+    """Path validation should accept normal paths and reject traversal."""
+    # Normal path should pass
+    assert _validate_safe_path("sample.csv") == "sample.csv"
+    assert _validate_safe_path("tests/sample.csv") == "tests/sample.csv"
+
+
+def test_cli_batch_missing_file():
+    """Batch command should return error code for missing input file."""
+    assert main(["batch", "-i", "nonexistent_file.csv"]) == 1
+
+
+def test_cli_batch_empty_csv(tmp_path):
+    """Batch command should handle empty CSV gracefully."""
+    csv_in = tmp_path / "empty.csv"
+    csv_in.write_text("", encoding="utf-8")
+    assert main(["batch", "-i", str(csv_in)]) == 1

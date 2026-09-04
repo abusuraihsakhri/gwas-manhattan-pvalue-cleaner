@@ -1,6 +1,6 @@
 # Gwas Manhattan Pvalue Cleaner
 
-> **Domain:** Privacy-Preserving Healthcare & Federated Computing  
+> **Domain:** Privacy-Preserving Healthcare & Federated Computing
 > **Reference Guidelines & Standards:** `HIPAA Safe Harbor §164.514 & Differential Privacy RDP`
 
 <div align="center">
@@ -18,10 +18,13 @@
 
 ## 📖 What It Does
 
-GWAS Summary Statistics Cleaner & Genomic Inflation (Lambda GC)
+GWAS Summary Statistics Cleaner & Genomic Inflation (Lambda GC) tool.
 Calculates genomic inflation factor (Lambda GC) and cleans summary stats for Manhattan/QQ plots.
 
-Zero-dependency Python implementation with single and batch evaluation.
+Multi-agent enterprise system with worker-based evaluation, PHI outbound protection,
+and tamper-evident audit logging. Includes a FastAPI REST server, CLI interface,
+and batch processing capabilities.
+
 Author: Dr. Abu Suraih Sakhri
 License: MIT
 
@@ -31,64 +34,86 @@ License: MIT
 
 ### 🔬 Analytical Functions
 
-- **`calculate_metrics()`**: Core domain algorithm for gwas-manhattan-pvalue-cleaner.
-- **`process_single()`** — calculates and validates process_single parameters.
-- **`process_batch()`** — calculates and validates process_batch parameters.
-- **`main()`** — calculates and validates main parameters.
+- **`calculate_metrics()`**: Core domain algorithm — computes weighted scores and classifies severity tiers.
+- **`process_single()`** — evaluates a single set of parameters and prints JSON results.
+- **`process_batch()`** — processes CSV input files and appends classification columns.
+- **`main()`** — CLI entry point with subcommands for single and batch evaluation.
+
+### 🤖 Multi-Agent System (agents/ module)
+
+- **SystemSupervisor** — orchestrates multi-worker task evaluation.
+- **InvariantQCWorker** — primary metric threshold boundary auditor.
+- **SafetyEscalationWorker** — safety interlock and escalation trigger.
+- **ProtocolConformanceWorker** — spec conformance and anomaly detection.
+- **PHIGuard** — Zero-PHI outbound interceptor blocking SSNs, MRNs, emails, etc.
+- **AuditTrail** — tamper-evident HMAC-SHA256 chained audit logging.
+- **ActiveLearningEngine** — Bayesian calibration feedback for worker reliability.
 
 ---
 
-## 📐 Mathematical Formulation & Logic
+## 💻 Installation
 
-```text
-  score = primary_val
-  rounded_score = round(score, 2)
-  res = calculate_metrics(**kwargs)
-  calc_res = calculate_metrics(**r)
+```bash
+pip install fastapi uvicorn pydantic pytest
 ```
 
 ---
 
 ## 💻 CLI Quickstart & Usage
 
-### 1. Guided Interactive Mode
+### 1. Single Evaluation Mode
 ```bash
-python cli.py
+python gwas_cleaner.py single --v1 12.0 --v2 4.0 --v3 2.0
 ```
 
-### 2. Direct Parameterized Evaluation
+### 2. Batch CSV Processing
 ```bash
-python cli.py --task-id <value> --target <value> --primary <value> --secondary <value>
+python gwas_cleaner.py batch -i sample.csv -o results.csv
 ```
 
-### Parameter Reference
-- `--task-id`: Specifies input measurement or parameter value.
-- `--target`: Specifies input measurement or parameter value.
-- `--primary`: Specifies input measurement or parameter value.
-- `--secondary`: Specifies input measurement or parameter value.
-- `--critical`: Specifies input measurement or parameter value.
-- `--status`: Specifies input measurement or parameter value.
-- `--input`: Specifies input measurement or parameter value.
-- `--output`: Specifies input measurement or parameter value.
+### 3. Enterprise CLI (agents-based)
+```bash
+# Single audit task
+python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2
 
-### Input Data Schema
+# Batch processing
+python cli.py batch -i sample.csv -o results.csv
+
+# Verify audit trail integrity
+python cli.py verify-audit
+
+# Launch FastAPI REST server
+python cli.py serve --host 127.0.0.1 --port 8000
+```
+
+### Input Data Schema (Batch CSV)
 
 | Field | Description | Requirement |
 |:------|:------------|:------------|
-| `Patient_ID` | Parameter / observation metric | Required |
-| `v1` | Parameter / observation metric | Required |
-| `v2` | Parameter / observation metric | Required |
-| `v3` | Parameter / observation metric | Required |
+| `task_id` | Task / case identifier | Required |
+| `target_identifier` | Entity or target key | Required |
+| `primary_metric` | Primary measurement or score | Required |
+| `secondary_metric` | Secondary confidence score | Optional (default 5.0) |
+| `status_descriptor` | Status code or phenotype | Optional (default NOMINAL) |
+| `is_critical_flag` | Emergency escalation flag | Optional (default False) |
 
 ---
 
 ## 🛡️ Security & Enterprise Architecture
 
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+* **Zero-PHI Outbound Interceptor:** AST and regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers.
+* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation. Requires `AUDIT_SECRET_KEY` environment variable for persistent integrity across restarts.
+* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI REST endpoints and operational Prometheus metrics (`/metrics`).
+* **Multi-Agent Consensus:** Worker-based evaluation with severity classification (ROUTINE, ELEVATED, CRITICAL_STAT).
+
+### Environment Variables
+
+| Variable | Description | Default |
+|:---------|:------------|:--------|
+| `AUDIT_SECRET_KEY` | Secret key for HMAC-SHA256 audit signing | Random per-session (ephemeral) |
+| `MODEL_PROVIDER` | LLM provider for chat (mock, ollama, claude, openai) | mock |
+
+> **Security Note:** Set `AUDIT_SECRET_KEY` in production to ensure audit trail integrity persists across process restarts. Without it, a random ephemeral key is generated per session.
 
 ---
 
@@ -112,5 +137,37 @@ python simulator.py --tasks 1000 --concurrency 8
 
 ```bash
 docker build -t gwas-manhattan-pvalue-cleaner .
-docker run -p 8000:8000 gwas-manhattan-pvalue-cleaner
+docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key gwas-manhattan-pvalue-cleaner
+```
+
+Or using Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+---
+
+## 📁 Project Structure
+
+```
+gwas-manhattan-pvalue-cleaner/
+├── agents/                   # Enterprise multi-agent system
+│   ├── api.py               # FastAPI REST endpoints
+│   ├── base.py              # Security, PHI guard, audit trail
+│   ├── learning.py          # Bayesian calibration engine
+│   ├── llm_factory.py       # LLM provider abstraction
+│   ├── metrics.py           # Prometheus metrics exporter
+│   ├── models.py            # Pydantic data models
+│   ├── streamer.py          # WebSocket telemetry broadcaster
+│   ├── supervisor.py        # Master orchestrator
+│   └── workers.py           # Domain-specific worker agents
+├── tests/                   # Pytest test suite
+├── cli.py                   # Enterprise CLI entry point
+├── gwas_cleaner.py          # Core GWAS cleaner CLI
+├── enrichment.py            # Enrichment feature engines
+├── simulator.py             # High-throughput stress simulator
+├── Dockerfile               # Container build spec
+├── docker-compose.yml       # Multi-service orchestration
+└── sample.csv               # Example input data
 ```

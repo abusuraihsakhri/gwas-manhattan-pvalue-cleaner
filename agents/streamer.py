@@ -2,7 +2,6 @@
 Live WebSocket Distributed Component Telemetry Streamer for gwas-manhattan-pvalue-cleaner.
 """
 import json
-import asyncio
 from typing import List, Dict, Any
 
 class TelemetryBroadcaster:
