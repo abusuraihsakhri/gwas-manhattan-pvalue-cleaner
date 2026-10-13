@@ -113,3 +113,15 @@ def test_audit_hmac_tampering_is_detected():
     # A malicious or accidental mutation of the internal record must be detected.
     trail.logs[0]["actor"] = "tampered"
     assert not trail.verify_integrity()
+
+
+def test_cli_rejects_malformed_metric_without_traceback(tmp_path):
+    source = tmp_path / "bad.csv"
+    source.write_text("task_id,primary_metric\nT1,nan\n", encoding="utf-8")
+    assert main(["batch", "-i", str(source), "-o", str(tmp_path / "out.csv")]) == 1
+    assert not (tmp_path / "out.csv").exists()
+
+
+def test_validate_safe_path_rejects_relative_traversal():
+    with pytest.raises(ValueError, match="escapes working directory"):
+        _validate_safe_path("../outside.csv")
