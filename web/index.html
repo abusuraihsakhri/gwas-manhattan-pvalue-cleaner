@@ -145,7 +145,7 @@ function analyze(rows){
     if(fields.length!==headers.length){rejectedCount++;continue}
     const chr=chromosome(fields[m.CHR]),bpText=fields[m.BP].trim(),pText=fields[m.P].trim();
     const bp=Number(bpText),p=Number(pText);
-    if(!Number.isInteger(chr)||!/^\d+$/.test(bpText)||!Number.isSafeInteger(bp)||bp<1||!pText||!Number.isFinite(p)||p<=0||p>1){rejectedCount++;continue}
+    if(!Number.isInteger(chr)||!/^[0-9]+$/.test(bpText)||!Number.isSafeInteger(bp)||bp<1||!/^[+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$/.test(pText)||!Number.isFinite(p)||p<=0||p>1){rejectedCount++;continue}
     const item={chr,bp,p,logp:-Math.log10(p),fields};data.push(item);
   }
   if(!data.length)throw Error("No valid GWAS rows; check CHR, BP and P");
