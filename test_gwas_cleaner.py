@@ -44,7 +44,7 @@ def test_batch_rejects_invalid_rows_and_blocks_csv_formula(tmp_path):
     source = tmp_path / "raw.csv"
     target = tmp_path / "clean.csv"
     source.write_text(
-        'CHR,BP,P,SNP\n1,123,0.5,"=1+1"\nX,456,1e-9,rs1\n1,0,0.3,invalid\n2,234,0,underflow\n',
+        'CHR,BP,P,SNP,BETA\n1,123,0.5,"=1+1",-0.5\nX,456,1e-9,rs1,-0.25\n1,0,0.3,invalid,0.1\n2,234,0,underflow,0.2\n',
         encoding="utf-8",
     )
     result = process_batch(str(source), str(target))
