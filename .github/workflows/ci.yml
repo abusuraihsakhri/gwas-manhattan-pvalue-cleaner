@@ -31,3 +31,10 @@ jobs:
       - name: Browser syntax and interaction smoke test
         if: matrix.python-version == '3.12'
         run: node tests/browser_smoke.cjs
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --tag gwas-cleaner:test .
