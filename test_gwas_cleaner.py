@@ -55,6 +55,7 @@ def test_batch_rejects_invalid_rows_and_blocks_csv_formula(tmp_path):
         rows = list(csv.DictReader(handle))
     assert len(rows) == 2
     assert rows[0]["SNP"] == "'=1+1"
+    assert rows[0]["BETA"] == "-0.5"
     assert rows[1]["GWAS_CHR"] == "23"
     assert float(rows[1]["NEG_LOG10_P"]) == pytest.approx(9)
 
