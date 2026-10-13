@@ -149,7 +149,7 @@ function analyze(rows){
     const item={chr,bp,p,logp:-Math.log10(p),fields};data.push(item);
   }
   if(!data.length)throw Error("No valid GWAS rows; check CHR, BP and P");
-  const chi2=data.map(r=>{const z=normalInv(r.p/2);return z*z});
+  const chi2=data.map(r=>{const z=normalInv(Math.max(r.p/2,Number.MIN_VALUE));return z*z});
   const lambdaGC=median(chi2)/CHISQ_MEDIAN;
   $("valid").textContent=data.length.toLocaleString();
   $("rejected").textContent=rejectedCount.toLocaleString();
@@ -179,7 +179,7 @@ function manhattan(){
   const maxBP=new Array(26).fill(0);data.forEach(r=>maxBP[r.chr]=Math.max(maxBP[r.chr],r.bp));
   const offsets=new Array(26).fill(0);let total=0;
   for(let chr=1;chr<=25;chr++){offsets[chr]=total;total+=maxBP[chr]>0?maxBP[chr]+Math.max(1,Math.round(maxBP[chr]*.05)):0}
-  const maxY=Math.max(8,...data.map(r=>r.logp))*1.07;
+  const maxY=data.reduce((m,r)=>Math.max(m,r.logp),8)*1.07;
   const width=right-left,height=bottom-top,ys=v=>bottom-v/maxY*height;
   const significance=-Math.log10(5e-8);
   g.setLineDash([5,4]);g.strokeStyle="#f5ab67";g.beginPath();g.moveTo(left,ys(significance));g.lineTo(right,ys(significance));g.stroke();g.setLineDash([]);
