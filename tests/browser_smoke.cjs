@@ -42,6 +42,8 @@ assert.equal(getElement("rejected").textContent, "1");
 assert.equal(getElement("hits").textContent, "1");
 assert.equal(getElement("download").disabled, false);
 assert.equal(evalIn("csvCell('=1+1')"), "'=1+1");
+assert.equal(evalIn("csvCell('-0.5')"), "-0.5");
+assert.equal(evalIn("csvCell('-1+2')"), "'-1+2");
 getElement("example").click();
 assert.equal(evalIn("data.length"), 2640);
 assert.ok(Number.isFinite(Number(getElement("lambda").textContent)));
