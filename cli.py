@@ -4,6 +4,7 @@ Command Line Interface for Gwas Manhattan Pvalue Cleaner.
 import argparse
 import csv
 import json
+import math
 import os
 import sys
 from agents.models import SystemTaskPayload
@@ -124,17 +125,30 @@ def main(argv=None):
             return 1
 
         out_fields = fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        if len(set(out_fields)) != len(out_fields):
+            print("Error: Duplicate or reserved CSV headers", file=sys.stderr)
+            return 1
         out_rows = []
-        for r in rows:
-            payload = SystemTaskPayload(
-                task_id=r.get("task_id", "TASK-01"),
-                target_identifier=r.get("target_identifier", "TARGET-01"),
-                primary_metric=float(r.get("primary_metric") or 15.0),
-                secondary_metric=float(r.get("secondary_metric") or 5.0),
-                status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
-            )
-            dossier = supervisor.process_task(payload)
+        for line, r in enumerate(rows, start=2):
+            try:
+                if None in r:
+                    raise ValueError("Unexpected extra CSV fields")
+                primary = float(r.get("primary_metric") or 15.0)
+                secondary = float(r.get("secondary_metric") or 5.0)
+                if not math.isfinite(primary) or not math.isfinite(secondary):
+                    raise ValueError("Metrics must be finite")
+                payload = SystemTaskPayload(
+                    task_id=r.get("task_id") or "TASK-01",
+                    target_identifier=r.get("target_identifier") or "TARGET-01",
+                    primary_metric=primary,
+                    secondary_metric=secondary,
+                    status_descriptor=r.get("status_descriptor") or "NOMINAL",
+                    is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
+                )
+                dossier = supervisor.process_task(payload)
+            except (ValueError, TypeError) as exc:
+                print(f"Error: CSV row {line}: {exc}", file=sys.stderr)
+                return 1
             row_dict = dict(r)
             row_dict["overall_urgency"] = dossier.overall_urgency.value
             row_dict["integrity_status"] = dossier.integrity_status.value
