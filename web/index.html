@@ -212,7 +212,12 @@ function qq(){
   g.fillStyle="#b4c2d8";g.fillText(maxY.toFixed(1),18,top+10);g.fillText(maxX.toFixed(1),right-25,bottom+18);
 }
 function plotAll(){if(!data.length){emptyPlot("manhattan");emptyPlot("qq");return}manhattan();qq()}
-function csvCell(v){let s=String(v);if(/^[\s]*[=+\-@]/.test(s))s="'"+s;return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+function csvCell(v){
+  let s=String(v),trimmed=s.trim();
+  const numeric=/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$/.test(trimmed)&&Number.isFinite(Number(trimmed));
+  if(/^[\s]*[=+\-@]/.test(s)&&!numeric)s="'"+s;
+  return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+}
 function exportCSV(){
   const fields=headers.concat(["GWAS_CHR","GWAS_BP","GWAS_P","NEG_LOG10_P"]);
   const lines=[fields.map(csvCell).join(",")];
