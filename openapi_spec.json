@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gwas Manhattan Pvalue Cleaner API",
-    "description": "Enterprise Distributed Component Platform (Clinical & Cryptographic AI) adhering to CAP / CLSI / NIST Standards.",
-    "version": "3.0.0-ENTERPRISE",
+    "description": "Optional legacy generic task audit API; not the GWAS p-value cleaner.",
+    "version": "3.0.1",
     "contact": {
       "name": "Dr. Abu Suraih Sakhri",
       "url": "https://github.com/abusuraihsakhri"
@@ -15,24 +15,24 @@
         "summary": "Health and metadata check",
         "responses": {
           "200": {
-            "description": "System optimal"
+            "description": "API process health status"
           }
         }
       }
     },
     "/metrics": {
       "get": {
-        "summary": "Prometheus operational metrics",
+        "summary": "Read JSON counts of legacy audit operations",
         "responses": {
           "200": {
-            "description": "Prometheus text metrics"
+            "description": "JSON operation counts"
           }
         }
       }
     },
     "/api/audit": {
       "post": {
-        "summary": "Dispatch task payload across specialized workers",
+        "summary": "Run generic legacy task evaluation (not GWAS analysis)",
         "requestBody": {
           "content": {
             "application/json": {
@@ -76,7 +76,7 @@
     },
     "/api/chat": {
       "post": {
-        "summary": "Air-gapped supervisory conversational assistant",
+        "summary": "Deterministic mock query; no external model inference",
         "requestBody": {
           "content": {
             "application/json": {
@@ -106,7 +106,7 @@
         "summary": "Retrieve and cryptographically verify HMAC audit trail",
         "responses": {
           "200": {
-            "description": "Cryptographic audit trail"
+            "description": "In-memory audit log with signature verification"
           }
         }
       }
