@@ -97,8 +97,16 @@ def calculate_metrics(*, p_values):
 
 
 def _safe_spreadsheet_value(value):
-    """Prevent cells containing user data from becoming spreadsheet formulas."""
-    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+    """Escape spreadsheet formulas while retaining signed numeric GWAS effects."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if stripped.startswith(("=", "+", "-", "@")):
+        try:
+            if math.isfinite(float(stripped)):
+                return value
+        except ValueError:
+            pass
         return "'" + value
     return value
 
