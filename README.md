@@ -1,173 +1,62 @@
-# Gwas Manhattan Pvalue Cleaner
+# GWAS Manhattan & P-value Cleaner
 
-> **Domain:** Privacy-Preserving Healthcare & Federated Computing
-> **Reference Guidelines & Standards:** `HIPAA Safe Harbor §164.514 & Differential Privacy RDP`
+Validate genome-wide association summary statistics, inspect Manhattan and QQ plots, and export cleaned data. The browser application runs locally without a backend; the Python CLI provides equivalent data validation and descriptive genomic inflation statistics.
 
-<div align="center">
+## Features
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+- CSV import with chromosome (CHR, CHROM, CHROMOSOME), base-pair (BP, POS, POSITION, BASE_PAIR) and p-value (P, PVAL, PVALUE, P_VALUE, P-VALUE) column aliases.
+- Supports chromosomes **1–22, X, Y and MT**; requires positive integer positions and finite p-values in **(0, 1]**.
+- Rejects invalid entries including zero/underflowed p-values; never invents replacement values.
+- Displays Manhattan and QQ plots with the conventional human-GWAS reference threshold of **p < 5 × 10⁻⁸**.
+- Reports valid/rejected marker counts and genomic inflation **λGC = median(χ² with 1 df) / 0.4549364231**.
+- Exports valid records with canonical coordinates, p-values and -log10(p); text that could trigger spreadsheet formulas is escaped.
 
-</div>
+**Interpretation:** λGC is an unadjusted descriptive statistic; it does not distinguish population stratification, relatedness, residual confounding or polygenicity. The QQ plot assumes a uniform-null reference and does not include an LD-aware confidence envelope. The genome-wide threshold is a conventional reference, not universally appropriate. This tool is not a complete GWAS QC pipeline.
 
----
+## Use in your browser
 
-## 📖 What It Does
+Open [web/index.html](web/index.html) in a recent browser. Upload a CSV or select **Try sample data**. Review the statistics and plots, then select **Download cleaned CSV**.
 
-GWAS Summary Statistics Cleaner & Genomic Inflation (Lambda GC) tool.
-Calculates genomic inflation factor (Lambda GC) and cleans summary stats for Manhattan/QQ plots.
+Processing is local; files are not uploaded. In-browser limits are **15 MB** and **200,000 data rows**. Plots downsample when needed for responsiveness; exports retain **all valid rows**. Larger datasets can be processed with the Python CLI.
 
-Multi-agent enterprise system with worker-based evaluation, PHI outbound protection,
-and tamper-evident audit logging. Includes a FastAPI REST server, CLI interface,
-and batch processing capabilities.
+The repository includes a GitHub Pages workflow for the static application. The site becomes accessible once Pages is enabled with **GitHub Actions** as its source and deployment succeeds.
 
-Author: Dr. Abu Suraih Sakhri
-License: MIT
+## Python CLI
 
----
+Python **3.10+**; the core cleaner uses only the standard library.
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+~~~bash
+python gwas_cleaner.py batch --input sample.csv --output cleaned_gwas.csv
+python gwas_cleaner.py single --p 0.5 --p 1e-9
+~~~
 
-### 🔬 Analytical Functions
+Batch input can include additional variant metadata such as SNP IDs. The cleaner preserves original columns and appends GWAS_CHR, GWAS_BP, GWAS_P and NEG_LOG10_P. Invalid rows are omitted and counted in the JSON summary. If no row is valid, the output file is not replaced.
 
-- **`calculate_metrics()`**: Core domain algorithm — computes weighted scores and classifies severity tiers.
-- **`process_single()`** — evaluates a single set of parameters and prints JSON results.
-- **`process_batch()`** — processes CSV input files and appends classification columns.
-- **`main()`** — CLI entry point with subcommands for single and batch evaluation.
+## Optional legacy API and agent modules
 
-### 🤖 Multi-Agent System (agents/ module)
+The existing agents/, cli.py, enrichment.py and simulator.py interfaces remain for compatibility. They implement *generic task evaluation*, not GWAS statistical analysis. Their metric thresholds and mock-chat responses should not be interpreted as validated clinical or statistical inference.
 
-- **SystemSupervisor** — orchestrates multi-worker task evaluation.
-- **InvariantQCWorker** — primary metric threshold boundary auditor.
-- **SafetyEscalationWorker** — safety interlock and escalation trigger.
-- **ProtocolConformanceWorker** — spec conformance and anomaly detection.
-- **PHIGuard** — Zero-PHI outbound interceptor blocking SSNs, MRNs, emails, etc.
-- **AuditTrail** — tamper-evident HMAC-SHA256 chained audit logging.
-- **ActiveLearningEngine** — Bayesian calibration feedback for worker reliability.
+To run the optional REST API:
 
----
-
-## 💻 Installation
-
-```bash
-pip install fastapi uvicorn pydantic pytest
-```
-
----
-
-## 💻 CLI Quickstart & Usage
-
-### 1. Single Evaluation Mode
-```bash
-python gwas_cleaner.py single --v1 12.0 --v2 4.0 --v3 2.0
-```
-
-### 2. Batch CSV Processing
-```bash
-python gwas_cleaner.py batch -i sample.csv -o results.csv
-```
-
-### 3. Enterprise CLI (agents-based)
-```bash
-# Single audit task
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2
-
-# Batch processing
-python cli.py batch -i sample.csv -o results.csv
-
-# Verify audit trail integrity
-python cli.py verify-audit
-
-# Launch FastAPI REST server
+~~~bash
+python -m pip install -r requirements.txt
 python cli.py serve --host 127.0.0.1 --port 8000
-```
+~~~
 
-### Input Data Schema (Batch CSV)
+The API exposes /health, /metrics, /api/audit, /api/chat and /api/audit/logs; it does **not** power the browser GWAS workflow. If deploying with Docker Compose, supply a private AUDIT_SECRET_KEY environment variable. The legacy PHI regex guard is not sufficient to establish HIPAA compliance or reliably de-identify arbitrary health records. Do not send patient-identifiable material.
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Task / case identifier | Required |
-| `target_identifier` | Entity or target key | Required |
-| `primary_metric` | Primary measurement or score | Required |
-| `secondary_metric` | Secondary confidence score | Optional (default 5.0) |
-| `status_descriptor` | Status code or phenotype | Optional (default NOMINAL) |
-| `is_critical_flag` | Emergency escalation flag | Optional (default False) |
+## Tests
 
----
+~~~bash
+python -m pip install -r requirements.txt pytest
+python -m pytest -q
+node tests/browser_smoke.cjs
+~~~
 
-## 🛡️ Security & Enterprise Architecture
+GitHub Actions tests Python 3.10–3.12 and runs a Node-based browser logic smoke test.
 
-* **Zero-PHI Outbound Interceptor:** AST and regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation. Requires `AUDIT_SECRET_KEY` environment variable for persistent integrity across restarts.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI REST endpoints and operational Prometheus metrics (`/metrics`).
-* **Multi-Agent Consensus:** Worker-based evaluation with severity classification (ROUTINE, ELEVATED, CRITICAL_STAT).
+## Technology and license
 
-### Environment Variables
+Python standard library, optional FastAPI/Pydantic service, and dependency-free HTML/CSS/JavaScript with Canvas plots. Designed for recent Chrome, Firefox, Safari and Edge; real-device/browser validation is separate from automated JavaScript smoke tests.
 
-| Variable | Description | Default |
-|:---------|:------------|:--------|
-| `AUDIT_SECRET_KEY` | Secret key for HMAC-SHA256 audit signing | Random per-session (ephemeral) |
-| `MODEL_PROVIDER` | LLM provider for chat (mock, ollama, claude, openai) | mock |
-
-> **Security Note:** Set `AUDIT_SECRET_KEY` in production to ensure audit trail integrity persists across process restarts. Without it, a random ephemeral key is generated per session.
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
-
-```bash
-pytest -v
-```
-
-Execute high-throughput batch simulation benchmarks:
-
-```bash
-python simulator.py --tasks 1000 --concurrency 8
-```
-
----
-
-## 🐳 Container Deployment
-
-```bash
-docker build -t gwas-manhattan-pvalue-cleaner .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key gwas-manhattan-pvalue-cleaner
-```
-
-Or using Docker Compose:
-
-```bash
-docker-compose up --build
-```
-
----
-
-## 📁 Project Structure
-
-```
-gwas-manhattan-pvalue-cleaner/
-├── agents/                   # Enterprise multi-agent system
-│   ├── api.py               # FastAPI REST endpoints
-│   ├── base.py              # Security, PHI guard, audit trail
-│   ├── learning.py          # Bayesian calibration engine
-│   ├── llm_factory.py       # LLM provider abstraction
-│   ├── metrics.py           # Prometheus metrics exporter
-│   ├── models.py            # Pydantic data models
-│   ├── streamer.py          # WebSocket telemetry broadcaster
-│   ├── supervisor.py        # Master orchestrator
-│   └── workers.py           # Domain-specific worker agents
-├── tests/                   # Pytest test suite
-├── cli.py                   # Enterprise CLI entry point
-├── gwas_cleaner.py          # Core GWAS cleaner CLI
-├── enrichment.py            # Enrichment feature engines
-├── simulator.py             # High-throughput stress simulator
-├── Dockerfile               # Container build spec
-├── docker-compose.yml       # Multi-service orchestration
-└── sample.csv               # Example input data
-```
+MIT license — see [LICENSE](LICENSE).

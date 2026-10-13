@@ -100,3 +100,28 @@ def test_cli_batch_empty_csv(tmp_path):
     csv_in = tmp_path / "empty.csv"
     csv_in.write_text("", encoding="utf-8")
     assert main(["batch", "-i", str(csv_in)]) == 1
+
+
+def test_audit_hmac_tampering_is_detected():
+    trail = AuditTrail(secret_key="test-secret")
+    trail.log("actor", "tier", "event", {"code": 1})
+    assert trail.verify_integrity()
+    # Returned audit records must not permit external mutation of internal state.
+    exported = trail.get_trail()
+    exported[0]["actor"] = "tampered"
+    assert trail.verify_integrity()
+    # A malicious or accidental mutation of the internal record must be detected.
+    trail.logs[0]["actor"] = "tampered"
+    assert not trail.verify_integrity()
+
+
+def test_cli_rejects_malformed_metric_without_traceback(tmp_path):
+    source = tmp_path / "bad.csv"
+    source.write_text("task_id,primary_metric\nT1,nan\n", encoding="utf-8")
+    assert main(["batch", "-i", str(source), "-o", str(tmp_path / "out.csv")]) == 1
+    assert not (tmp_path / "out.csv").exists()
+
+
+def test_validate_safe_path_rejects_relative_traversal():
+    with pytest.raises(ValueError, match="escapes working directory"):
+        _validate_safe_path("../outside.csv")
